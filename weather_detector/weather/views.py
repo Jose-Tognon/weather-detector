@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 import requests
 from dotenv import load_dotenv
 import os
+from django.http import HttpResponseBadRequest
 # Create your views here.
 load_dotenv()
 
@@ -10,17 +11,22 @@ def index(request):
     if request.method == "POST":
         api_key = os.getenv('API_KEY')
         city = request.POST['city']
-        print(city)
-        url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
-        res = requests.get(url)
-        data = {
-            "country_code": res.json()['sys']['country'],
-            "coordinate": f'Longitude: {res.json()['coord']['lon']} / Latitude: {res.json()['coord']['lat']}',
-            "temp": str(round((res.json()['main']['temp']) - 273.15,2)) + " °C",
-            "pressure": res.json()['main']['pressure'],
-            "humidity": res.json()['main']['humidity'],
-            "city":city,
-        }
+        if city != "":
+            url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+            res = requests.get(url)
+            if res.status_code == 200:
+                data = {
+                    "country_code": res.json()['sys']['country'],
+                    "coordinate": f'Longitude: {res.json()['coord']['lon']} / Latitude: {res.json()['coord']['lat']}',
+                    "temp": str(round((res.json()['main']['temp']) - 273.15,2)) + " °C",
+                    "pressure": res.json()['main']['pressure'],
+                    "humidity": res.json()['main']['humidity'],
+                    "city":city,
+                }
+            else:
+                return HttpResponseBadRequest("URL ou os parâmetros estão errados")
+        else:
+            return redirect('index')
     else:
         data = {}     
     return render(request,template_name,data)
